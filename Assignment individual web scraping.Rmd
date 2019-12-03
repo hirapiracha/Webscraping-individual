@@ -1,0 +1,114 @@
+---
+title: "Individual assingment wb"
+author: "Hira Piracha"
+date: "11/23/2019"
+output: html_document
+---
+
+```{r}
+#loading libraries
+library(rvest)
+library(data.table)
+```
+
+```{r}
+my_page_number <- 1:3
+page_to_download <- 3
+my_base_url <- paste0("https://www.economist.com/books-and-arts/?page=", my_page_number)
+
+```
+
+dataframe of one page
+
+```{r}
+
+get_one_page <- function(my_base_url){
+  
+  t <- read_html(my_base_url)
+
+  my_titles <- 
+  t %>%
+  html_nodes('.flytitle-and-title__flytitle')%>%
+  html_text()
+
+  my_links <- 
+  t %>%
+  html_nodes('.flytitle-and-title__title')%>%  
+  html_text('href')
+  
+  
+  my_summary <- 
+  t %>%
+  html_nodes('.teaser__text')%>%
+  html_text()
+
+  return(data.frame('titles' = my_titles, 'links'= my_links, 'summary' = my_summary))
+}
+
+#make the url
+first_link <- ("https://www.economist.com/books-and-arts/")
+
+#res
+rest_link <- paste0("https://www.economist.com/books-and-arts/?page=", c(2:page_to_download))
+
+my_links<- c(first_link, rest_link)
+
+df_lists  <- lapply(my_links, get_one_page)
+
+final_df <- rbindlist(df_lists)
+
+#view the final table
+head(final_df)
+
+```
+
+
+
+final_df <- rbindlist(df_lists)
+
+
+
+# it is nicer if your df is comming for every search result box 
+
+get_one_page_from_boxes <- function(my_base_url) {
+  
+  # make dataframe of one page
+  t <- read_html(my_base_url)
+  res_boxes <- t %>%
+    html_nodes('#content li')
+  
+  res_boxes <- res_boxes[1:10]
+  
+list_of_boxes_df <- 
+  lapply(res_boxes, function(x){
+    my_titles <- 
+      x %>%
+      html_nodes('a')%>%
+      html_text()
+    
+    my_links <- 
+      x %>%
+      html_nodes('a')%>%
+      html_attr('href')
+    
+    my_summary <- 
+      x %>%
+      html_nodes('p')%>%
+      html_text()
+    
+    return(data.frame('titles' = my_titles, 'links'= my_links, 'summary' = my_summary))
+  })
+
+  
+df_of_the_page <- rbindlist(list_of_boxes_df) 
+
+return(df_of_the_page )  
+}
+
+# we can use the same links
+
+df_lists  <- lapply(my_links, get_one_page_from_boxes)
+
+final_df <- rbindlist(df_lists)
+
+saveRDS(final_df, 'base_excersise/data_res.rds')
